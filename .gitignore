@@ -1,1 +1,6 @@
 # custom git ignore
+
+docroot/sites/all/drush/
+docroot/sites/*.co.uk/
+docroot/sites/sites.php
+
