@@ -1,0 +1,46 @@
+/**
+ * This file should get overwritten if Method 1 is used. If Method 2 is chosen,
+ * remove this comment and start adding your styles to this file.
+ */
+
+/**
+* General page elements
+*/
+/**
+* Header
+*/
+.logo.navbar-btn img{
+  max-width: 34px;
+}
+/**
+* END OF Header
+*/
+
+/**
+* END OF General page elements
+*/
+
+/**
+* END OF General page elements
+*/
+body .navbar.container {
+  max-width: none;
+}
+
+.container {
+  width: auto;
+}
+
+.well-light {
+  background-color: #fdfdfd;
+}
+
+.field-item h1 {
+  font-size: 22px;
+}
+.field-item h2 {
+  font-size: 19px;
+}
+.field-item h2 {
+  font-size: 15px;
+}

@@ -1,0 +1,176 @@
+<?php
+
+/**
+ * @file
+ * Enhances the token API in core: adds a browseable UI, missing tokens, etc.
+ */
+function reader_pages_init() {
+  drupal_add_js(drupal_get_path('module', 'reader_pages') . '/jquery.appear.js');
+  drupal_add_js(drupal_get_path('module', 'reader_pages') . '/reader.js');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function reader_pages_menu() {
+  $items['reader_front'] = array(
+      'page callback' => 'page_reader_front',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+      'file' => 'reader_pages.pages.inc',
+  );
+  $items['reader_statistic'] = array(
+      'page callback' => 'page_reader_statistic',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+          //'file' => 'reader_pages.pages.inc',
+  );
+  $items['node/%node/mark_all_as_read'] = array(
+      'title' => 'Mark all as read',
+      'page callback' => 'page_mark_all_as_read',
+      'access callback' => TRUE,
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'reader_pages.functionality.inc.php',
+  );
+  $items['reader/mark_as_read/%node'] = array(
+      'title' => 'Mark node as read',
+      'page callback' => 'page_mark_node_as_read',
+      'access callback' => TRUE,
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'reader_pages.functionality.inc.php',
+  );
+  $items['reader/keep_unread/%node'] = array(
+      'title' => 'Mark node as unread',
+      'page callback' => 'page_mark_node_unread',
+      'access callback' => TRUE,
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'reader_pages.functionality.inc.php',
+  );
+  
+  $items['reader_front2_show_articles'] = array(
+    'page callback' => 'page_reader_front2_show_articles',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'reader_pages.pages-front2.inc',
+  );
+
+  return $items;
+}
+
+function page_reader_statistic() {
+  $apis = charts_graphs_apis();
+  //echo '<pre>' . print_r( $apis, TRUE) . '</pre>';  // or use dpm($apis); if you have devel module.
+  dsm($apis);
+  $canvas = charts_graphs_get_graph('bluff');
+  dsm($canvas);
+  return 'a';
+}
+
+function reader_pages_preprocess_node(&$vars) {
+  if ($vars['type'] == 'feed') {
+    reader_pages_preprocess_node_feed($vars);
+  }
+  if ($vars['type'] == 'feed_item') {
+    reader_pages_preprocess_node_feed_item($vars);
+  }
+}
+
+function reader_pages_preprocess_node_feed(&$vars) {
+  $o = '';
+  if (isset($_GET['show-mode'])) {
+    if (!isset($_SESSION['reader'])) {
+      $_SESSION['reader'] = array();
+    }
+    $_SESSION['reader']['show_mode'] = $_GET['show-mode'];
+  }
+  //, node_feed_item.*
+  //$o .= '<h3>Articles</h3>';
+  $html = '<div class="top-toolbar"><a href="' . url($_GET['q']) . '?show-mode=list" >show as a list</a> <a href="' . url($_GET['q']) . '?show-mode=full" >show full articles</a></div>';
+  $vars['content']['top_links'] = array('#markup' => $html);
+  $count_sql = "SELECT COUNT(feeds_item.feed_nid) AS total
+      FROM node 
+      LEFT JOIN feeds_item ON node.nid = feeds_item.feed_nid
+      LEFT JOIN feeds_source ON feeds_source.feed_nid = node.nid
+      LEFT JOIN node AS node_feed_item ON feeds_item.entity_id = node_feed_item.nid
+      LEFT JOIN field_data_field_feed_item_description AS field_feed_item_description ON field_feed_item_description.entity_id = node_feed_item.nid
+      WHERE node.nid = :nid";
+  $sql = "SELECT source, node_feed_item.*, field_feed_item_description_value
+      FROM node 
+      LEFT JOIN feeds_item ON node.nid = feeds_item.feed_nid
+      LEFT JOIN feeds_source ON feeds_source.feed_nid = node.nid
+      LEFT JOIN node AS node_feed_item ON feeds_item.entity_id = node_feed_item.nid
+      LEFT JOIN field_data_field_feed_item_description AS field_feed_item_description ON field_feed_item_description.entity_id = node_feed_item.nid
+      WHERE node.nid = :nid
+      ORDER BY node_feed_item.created DESC,node_feed_item.nid DESC ";
+  
+  $limit = 20;
+  if (isset($_REQUEST['page'])) {
+    $start = $_REQUEST['page'] * $limit;
+  } else {
+    $start = 0;
+  }
+  $results_total = db_query($count_sql, array(':nid' => $vars['nid']))->fetchField();
+  $results = db_query_range($sql, $start, $limit, array(':nid' => $vars['nid']));
+
+  $flag = flag_get_flag('read');
+  foreach ($results as $result) {
+    $classes = 'item item-' . $result->nid;
+    if ($flag && $flag->is_flagged($result->nid)) {
+      $classes .= ' have-read';
+    } else {
+      $classes .= ' didnt-read';
+    }
+    $o .= '<div class="' . $classes . '" data-id="' . $result->nid . '">';
+    $o .= '<div class="item-header">';
+    $ago = time() - $result->created;
+    if ($ago > 60 * 60 * 24 * 30 * 6) {
+      $o .= '<div class="created" style="float:right;">' . date('Y.m.d H:i', $result->created) . '</div>';
+    } else {
+      $o .= '<div class="created" style="float:right;">' . format_interval($ago) . ' ago</div>';
+    }
+    //$o .= '<div class="created" style="float:right;">changed ' . date('Y.m.d H:i', $result->changed) . '</div>';
+    $o .= '<h4>' . l($result->title, 'node/' . $result->nid) . '</h4>';
+    $o .= '</div>';
+    if (empty($_SESSION['reader']['show_mode']) || $_SESSION['reader']['show_mode'] == 'full') {
+      $feed_item_info = get_info_of_feed_item($result->nid);
+      $o .= '<a class="btn btn-default" href="' . $feed_item_info->url . '">open website</a>';
+      $o .= '<div class="content">' . check_markup($result->field_feed_item_description_value, 'filtered_html') . '</div>';
+      $o .= '<div class="bottom-toolbar">';
+      $o .= '<a class="keep-unread" data-id="' . $result->nid . '" href="#">keep unread</a>';
+//            $o .= '<a class="add-to-favorites" data-id="' . $result->nid . '" href="#">add to favorites</a>';
+      $o .= '</div>';
+      $o .= '<a class="end-of-item" data-id="' . $result->nid . '" href="#" >text</a>';
+    }
+    $o .= '</div>';
+  }
+//    $o .= '<a class="end-of-all-items" data-id="' . $result->nid . '" href="#" >final</a>';
+  pager_default_initialize($results_total, $limit, $element = 0);
+  $o .= theme('pager',array("quantity" => 5));
+  
+  $vars['content']['new_content'] = array('#markup' => $o);
+}
+
+function reader_pages_preprocess_node_feed_item(&$vars) {
+  flag('flag', 'read', $vars['nid']); // @action
+  $feed_item_info = get_info_of_feed_item($vars['nid']);
+  $feed_nid = $feed_item_info->feed_nid;
+//  dsm($feed_item_info);
+//  dsm($vars);
+  $feed = node_load($feed_nid);
+  
+  drupal_set_title($feed->title . ' - ' . $vars['title']);
+  
+  $html = '';
+  $ago = time() - $feed->created;
+  if ($ago > 60 * 60 * 24 * 30 * 6) {
+    $html .= '<div class="created" style="float:right;">' . date('Y.m.d H:i', $feed->created) . '</div>';
+  } else {
+    $html .= '<div class="created" style="float:right;">' . format_interval($ago) . ' ago</div>';
+  }
+  $html .= '<div class="top-toolbar">';
+  $html .= '<span class="source-blog">From: <span class="value">' . l($feed->title, 'node/' . $feed->nid) . '</span></span>';
+//  $html .= '<a href="' . $feed_item_info->url . '" >Source page</a>';
+//  $html .= l('All articles from "' . $feed->title . '"', 'node/' . $feed->nid);
+  $html .= '</div>';
+  $vars['content']['top_links'] = array('#markup' => $html, '#weight' => -10);
+}

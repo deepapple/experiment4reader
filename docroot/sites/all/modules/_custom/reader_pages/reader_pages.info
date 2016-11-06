@@ -1,0 +1,4 @@
+name = Reader pages
+description = Pages
+core = 7.x
+package = Reader

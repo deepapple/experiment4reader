@@ -1,0 +1,41 @@
+::selection {
+    background-color: #b3d4fc;
+    text-shadow: none;
+}
+body {
+    /*font: 17px/1.4 'Open Sans',sans-serif;*/
+    font: 12px 'Open Sans',sans-serif;
+    color: #CCCCCC;
+    background-color: #111111;
+}
+.wrapper {
+    /*display: flex;*/
+}
+.content {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #CCCCCC;
+    /*order: 2;*/
+}
+a {
+    color: #FF9999;
+}
+.block {
+  clear: left;
+  float: left;
+  width: 300px;
+}
+
+.content {
+  margin-left: 320px;
+}
+
+
+.block-sidebar {
+    /*order: 1;*/
+    width: 300px;
+}
+
+.block-debug_statistic {
+    /*order: 3;*/
+}

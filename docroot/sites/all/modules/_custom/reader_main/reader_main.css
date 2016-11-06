@@ -1,0 +1,67 @@
+
+.bottom-toolbar {
+  display: inline-block;
+  margin-top: 100px;
+}
+.bottom-toolbar a,
+.top-toolbar a
+{
+  border: 1px solid #cccccc;
+  background: #FFFFFF;
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 5px 10px;
+}
+a.active {
+  font-weight: bold;
+}
+.bottom-toolbar a:first-child,
+.top-toolbar a:first-child {
+  margin-left: 0;
+}
+
+.have-read {
+  background-color: #F0F0F0;
+}
+
+.end-of-item {
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  text-indent: 5px;
+  display: inline-block;
+}
+
+.source-blog .value {
+  font-weight: bold;
+}
+.tabs--primary.nav.nav-tabs {
+  width: 1px;
+  height: 43px;
+  padding-left: 43px;
+  background-color: #CCCCCC;
+  overflow: hidden;
+  position: absolute;
+  right: 15px;
+  top: 0;
+}
+
+.tabs--primary.nav.nav-tabs:hover {
+  width: auto;
+  padding-left: 0;
+  background-color: #F0F0F0;
+  overflow: auto;
+}
+
+
+.number {
+  font-size: 8px;
+/*  font-weight: bold;*/
+}
+.number .new {
+  font-size: 13px;
+  font-weight: bold;
+}
+.old-items .number {
+  font-size: 12px;
+}
